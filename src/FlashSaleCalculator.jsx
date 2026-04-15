@@ -389,6 +389,23 @@ export default function FlashSaleCalculator() {
           <div style={{ fontSize: "11px", color: "var(--lavender)", lineHeight: 1.5 }}><strong>Semua harga belum termasuk ongkos kirim.</strong> Ongkir ditanggung pembeli atau dihitung terpisah saat checkout.</div>
         </div>
 
+        <div style={{
+          marginTop: "14px", padding: "20px", background: "linear-gradient(135deg,rgba(224,180,76,0.06),rgba(212,164,58,0.03))",
+          border: "1px solid rgba(224,180,76,0.12)", borderRadius: "14px", textAlign: "center",
+        }}>
+          <div style={{ fontSize: "24px", marginBottom: "8px" }}>☕</div>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" }}>Suka tools ini?</div>
+          <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "14px", lineHeight: 1.5 }}>Traktir saya kopi biar makin semangat bikin tools gratis lainnya</div>
+          <a href="https://saweria.co/dayat1989" target="_blank" rel="noopener noreferrer" style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            padding: "10px 24px", borderRadius: "10px", fontSize: "13px", fontWeight: 700,
+            background: "linear-gradient(135deg,#E0B44C,#C49A38)", color: "#1a1408",
+            textDecoration: "none", cursor: "pointer", border: "none",
+            boxShadow: "0 2px 12px rgba(224,180,76,0.25)",
+            transition: "transform 0.15s, box-shadow 0.15s",
+          }}>☕ Traktir Kopi</a>
+        </div>
+
         <div style={{ textAlign: "center", padding: "28px 0 8px", fontSize: "10px", color: "var(--muted)" }}>⚡ Flash Sale Calculator</div>
       </div>
     </div>
