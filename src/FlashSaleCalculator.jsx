@@ -1,0 +1,373 @@
+import { useState, useMemo } from "react";
+
+const fmtRp = (v) => (!v && v !== 0) ? "-" : "Rp " + Math.round(v).toLocaleString("id-ID");
+const fmtPct = (v) => (!v && v !== 0) ? "-" : v.toFixed(1) + "%";
+const roundNice = (v) => Math.round(v / 1000) * 1000;
+
+const GRAM_PRESETS = [0.5, 1, 2, 3, 5, 10, 25, 50, 100];
+
+const Input = ({ label, value, onChange, prefix = "Rp", suffix, hint, accent }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+    <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", letterSpacing: "0.05em", textTransform: "uppercase" }}>{label}</label>
+    <div style={{
+      display: "flex", alignItems: "center",
+      background: accent ? "rgba(232,184,75,0.06)" : "var(--input-bg)",
+      border: `1px solid ${accent ? "rgba(232,184,75,0.3)" : "var(--input-border)"}`,
+      borderRadius: "10px", overflow: "hidden",
+    }}>
+      {prefix && <span style={{ padding: "0 0 0 12px", fontSize: "13px", color: "var(--muted)", fontWeight: 600 }}>{prefix}</span>}
+      <input type="number" value={value} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        placeholder="0" step="any" style={{
+          flex: 1, padding: "11px 12px", background: "transparent", border: "none", outline: "none",
+          fontSize: "15px", fontWeight: 600, color: accent ? "var(--gold)" : "var(--text)", fontFamily: "inherit",
+        }}
+      />
+      {suffix && <span style={{ padding: "0 12px 0 0", fontSize: "13px", color: "var(--muted)", fontWeight: 500 }}>{suffix}</span>}
+    </div>
+    {hint && <span style={{ fontSize: "11px", color: "var(--muted)" }}>{hint}</span>}
+  </div>
+);
+
+const Slider = ({ label, value, onChange, min, max, step, hint }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", letterSpacing: "0.05em", textTransform: "uppercase" }}>{label}</label>
+      <span style={{ fontSize: "16px", fontWeight: 800, color: "var(--gold)" }}>{value}%</span>
+    </div>
+    <input type="range" min={min} max={max} step={step} value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={{ width: "100%", cursor: "pointer", height: "6px" }}
+    />
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--muted)" }}>
+      <span>{min}%</span><span>{hint}</span><span>{max}%</span>
+    </div>
+  </div>
+);
+
+const Card = ({ icon, color, title, children, sub }) => (
+  <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: "16px", padding: "22px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: sub ? "4px" : "16px" }}>
+      <span style={{ width: "3px", height: "16px", background: color, borderRadius: "2px" }} />
+      <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>{icon} {title}</span>
+    </div>
+    {sub && <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "16px", paddingLeft: "11px" }}>{sub}</div>}
+    {children}
+  </div>
+);
+
+const Stat = ({ label, value, sub, variant }) => {
+  const s = {
+    gold: { bg: "linear-gradient(135deg,#D4A43A,#B8892E)", t: "#fff", m: "rgba(255,255,255,0.6)" },
+    green: { bg: "linear-gradient(135deg,#4DAA8A,#3D9478)", t: "#fff", m: "rgba(255,255,255,0.6)" },
+    red: { bg: "rgba(216,100,80,0.12)", t: "#D8725A", m: "rgba(216,100,80,0.7)" },
+    amber: { bg: "rgba(212,164,58,0.12)", t: "#D4A43A", m: "rgba(212,164,58,0.7)" },
+    default: { bg: "var(--card-bg)", t: "var(--text)", m: "var(--muted)" },
+  }[variant || "default"];
+  return (
+    <div style={{ padding: "16px", borderRadius: "12px", flex: "1 1 150px", minWidth: 0, background: s.bg, border: variant === "default" || !variant ? "1px solid var(--card-border)" : "none" }}>
+      <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: s.m, marginBottom: "5px" }}>{label}</div>
+      <div style={{ fontSize: "20px", fontWeight: 800, color: s.t, lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: "11px", color: s.m, marginTop: "4px" }}>{sub}</div>}
+    </div>
+  );
+};
+
+const Bar = ({ label, value, max, color, tag }) => {
+  const w = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div style={{ width: "85px", fontSize: "11px", color: "var(--muted)", fontWeight: 600, textAlign: "right", flexShrink: 0 }}>{label}</div>
+      <div style={{ flex: 1, background: "var(--bar-bg)", borderRadius: "6px", height: "28px", overflow: "hidden" }}>
+        <div style={{
+          width: `${w}%`, height: "100%", background: color, borderRadius: "6px",
+          transition: "width 0.4s cubic-bezier(0.22,1,0.36,1)",
+          display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "8px",
+          minWidth: value > 0 ? "80px" : 0,
+        }}>
+          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", whiteSpace: "nowrap" }}>
+            {fmtRp(value)}{tag ? ` ${tag}` : ""}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GramBtn = ({ label, active, onClick }) => (
+  <button onClick={onClick} style={{
+    padding: "7px 14px", fontSize: "12px", fontWeight: 700, borderRadius: "8px", cursor: "pointer",
+    fontFamily: "inherit", transition: "all 0.15s",
+    background: active ? "var(--gold)" : "var(--input-bg)",
+    color: active ? "#1a1408" : "var(--muted)",
+    border: `1px solid ${active ? "var(--gold)" : "var(--input-border)"}`,
+  }}>{label}</button>
+);
+
+export default function FlashSaleCalculator() {
+  const [productName, setProductName] = useState("");
+  const [gramasi, setGramasi] = useState("");
+  const [hargaEU, setHargaEU] = useState("");
+  const [hargaRS, setHargaRS] = useState("");
+  const [kompMin, setKompMin] = useState("");
+  const [kompMax, setKompMax] = useState("");
+  const [diskonEU, setDiskonEU] = useState(10);
+  const [diskonRS, setDiskonRS] = useState(5);
+  const [minProfit, setMinProfit] = useState("");
+  const [overrideEU, setOverrideEU] = useState("");
+  const [overrideRS, setOverrideRS] = useState("");
+
+  const calc = useMemo(() => {
+    const eu = Number(hargaEU) || 0;
+    const rs = Number(hargaRS) || 0;
+    const kmin = Number(kompMin) || 0;
+    const kmax = Number(kompMax) || 0;
+    const kavg = kmin && kmax ? (kmin + kmax) / 2 : 0;
+    const mp = Number(minProfit) || 0;
+    const gram = Number(gramasi) || 0;
+
+    let flashEU = eu > 0 ? roundNice(eu * (1 - diskonEU / 100)) : 0;
+    let flashRS = rs > 0 ? roundNice(rs * (1 - diskonRS / 100)) : 0;
+    const floorFromProfit = kavg > 0 && mp > 0 ? roundNice(kavg + mp) : 0;
+
+    let cappedEU = false, cappedRS = false;
+    if (floorFromProfit > 0 && flashEU > 0 && flashEU < floorFromProfit) { flashEU = floorFromProfit; cappedEU = true; }
+    if (floorFromProfit > 0 && flashRS > 0 && flashRS < floorFromProfit) { flashRS = floorFromProfit; cappedRS = true; }
+
+    const finalEU = Number(overrideEU) || flashEU;
+    const finalRS = Number(overrideRS) || flashRS;
+    const actualDiskonEU = eu > 0 && finalEU > 0 ? ((eu - finalEU) / eu) * 100 : 0;
+    const actualDiskonRS = rs > 0 && finalRS > 0 ? ((rs - finalRS) / rs) * 100 : 0;
+    const selisihEU = eu > 0 && finalEU > 0 ? eu - finalEU : 0;
+    const selisihRS = rs > 0 && finalRS > 0 ? rs - finalRS : 0;
+    const profitEU = finalEU > 0 && kavg > 0 ? finalEU - kavg : 0;
+    const profitRS = finalRS > 0 && kavg > 0 ? finalRS - kavg : 0;
+    const profitPerGramEU = profitEU > 0 && gram > 0 ? profitEU / gram : 0;
+    const profitPerGramRS = profitRS > 0 && gram > 0 ? profitRS / gram : 0;
+
+    let posisiEU = "-";
+    if (finalEU > 0 && kavg > 0) { const d = ((finalEU - kavg) / kavg) * 100; posisiEU = d < -2 ? "Lebih Murah" : d > 2 ? "Lebih Mahal" : "Setara"; }
+    const diffEUvsKomp = finalEU > 0 && kavg > 0 ? finalEU - kavg : 0;
+    const maxDiskonEU = eu > 0 && floorFromProfit > 0 ? Math.max(((eu - floorFromProfit) / eu) * 100, 0) : 100;
+    const maxDiskonRS = rs > 0 && floorFromProfit > 0 ? Math.max(((rs - floorFromProfit) / rs) * 100, 0) : 100;
+
+    return { eu, rs, kmin, kmax, kavg, gram, mp, flashEU, flashRS, finalEU, finalRS, floorFromProfit, cappedEU, cappedRS, actualDiskonEU, actualDiskonRS, selisihEU, selisihRS, profitEU, profitRS, profitPerGramEU, profitPerGramRS, posisiEU, diffEUvsKomp, maxDiskonEU, maxDiskonRS };
+  }, [hargaEU, hargaRS, kompMin, kompMax, diskonEU, diskonRS, minProfit, gramasi, overrideEU, overrideRS]);
+
+  const maxBar = Math.max(calc.eu, calc.rs, calc.kmax, calc.finalEU, calc.finalRS, 1);
+
+  return (
+    <div style={{
+      "--bg": "#101318", "--card-bg": "#181d26", "--card-border": "rgba(255,255,255,0.055)",
+      "--input-bg": "rgba(255,255,255,0.03)", "--input-border": "rgba(255,255,255,0.07)",
+      "--text": "#E8E4DF", "--muted": "#717784", "--label": "#9BA0AC",
+      "--gold": "#E0B44C", "--gold-dark": "#C49A38",
+      "--sage": "#5BB898", "--sage-dark": "#4AA385",
+      "--lavender": "#8B9BF7", "--lavender-soft": "#6E80E8",
+      "--coral": "#D8725A", "--coral-soft": "#C4604A",
+      "--bar-bg": "rgba(255,255,255,0.04)",
+      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+      background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: "20px 16px",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+        input[type=number]{-moz-appearance:textfield}
+        input::placeholder{color:#3d4250}
+        input[type=range]{-webkit-appearance:none;appearance:none;background:rgba(255,255,255,0.07);border-radius:4px;outline:none}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#E0B44C;cursor:pointer;border:2px solid #101318;box-shadow:0 0 8px rgba(224,180,76,0.3)}
+      `}</style>
+
+      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "linear-gradient(135deg,rgba(224,180,76,0.1),rgba(212,164,58,0.06))", border: "1px solid rgba(224,180,76,0.15)", borderRadius: "999px", padding: "5px 16px", marginBottom: "16px" }}>
+            <span>⚡</span>
+            <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--gold)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Flash Sale Calculator</span>
+          </div>
+          <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em" }}>
+            Hitung Harga{" "}
+            <span style={{ background: "linear-gradient(135deg,#E8C35A,#D4A43A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Flash Sale</span>
+          </h1>
+          <p style={{ fontSize: "13px", color: "var(--muted)", marginTop: "8px" }}>Input harga normal & kompetitor, atur diskon, dapat harga flash sale optimal</p>
+        </div>
+
+        <Card icon="①" color="var(--gold)" title="Produk">
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", letterSpacing: "0.05em", textTransform: "uppercase" }}>Nama Produk</label>
+              <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="cth: Antam 0.5gr" style={{ padding: "11px 12px", background: "var(--input-bg)", border: "1px solid var(--input-border)", borderRadius: "10px", fontSize: "15px", fontWeight: 600, color: "var(--text)", outline: "none", fontFamily: "inherit" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", letterSpacing: "0.05em", textTransform: "uppercase" }}>Gramasi</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {GRAM_PRESETS.map((g) => (<GramBtn key={g} label={`${g}g`} active={Number(gramasi) === g} onClick={() => setGramasi(g)} />))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                <span style={{ fontSize: "11px", color: "var(--muted)" }}>atau input manual:</span>
+                <input type="number" value={gramasi} onChange={(e) => setGramasi(e.target.value === "" ? "" : Number(e.target.value))} placeholder="0" step="any" style={{ width: "100px", padding: "8px 10px", background: "var(--input-bg)", border: "1px solid var(--input-border)", borderRadius: "8px", fontSize: "14px", fontWeight: 600, color: "var(--text)", outline: "none", fontFamily: "inherit" }} />
+                <span style={{ fontSize: "13px", color: "var(--muted)", fontWeight: 500 }}>gram</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div style={{ height: "14px" }} />
+
+        <Card icon="②" color="var(--lavender)" title="Harga Jual Normal">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+            <Input label="Harga End User" value={hargaEU} onChange={setHargaEU} hint="Harga jual normal ke pembeli" />
+            <Input label="Harga Reseller" value={hargaRS} onChange={setHargaRS} hint="Harga jual normal ke reseller" />
+          </div>
+          {calc.gram > 0 && (calc.eu > 0 || calc.rs > 0) && (
+            <div style={{ marginTop: "12px", display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "12px", color: "var(--muted)" }}>
+              {calc.eu > 0 && <span>EU: <strong style={{ color: "var(--text)" }}>{fmtRp(calc.eu / calc.gram)}/g</strong></span>}
+              {calc.rs > 0 && <span>RS: <strong style={{ color: "var(--text)" }}>{fmtRp(calc.rs / calc.gram)}/g</strong></span>}
+            </div>
+          )}
+        </Card>
+
+        <div style={{ height: "14px" }} />
+
+        <Card icon="③" color="var(--lavender-soft)" title="Harga Kompetitor" sub="Harga beli dari penjual lain di pasaran">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+            <Input label="Harga Beli Minimal" value={kompMin} onChange={setKompMin} hint="Termurah di pasaran" />
+            <Input label="Harga Beli Maksimal" value={kompMax} onChange={setKompMax} hint="Termahal di pasaran" />
+          </div>
+          {calc.kavg > 0 && (
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(139,155,247,0.06)", border: "1px solid rgba(139,155,247,0.12)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--lavender)" }}>Rata-rata Kompetitor</span>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: "16px", fontWeight: 800, color: "var(--lavender)" }}>{fmtRp(calc.kavg)}</span>
+                {calc.gram > 0 && <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "8px" }}>({fmtRp(calc.kavg / calc.gram)}/g)</span>}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <div style={{ height: "14px" }} />
+
+        <Card icon="④" color="var(--sage)" title="Strategi Flash Sale">
+          <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+            <Slider label="Diskon End User" value={diskonEU} onChange={setDiskonEU} min={0} max={50} step={0.5} hint="Potongan dari harga normal" />
+            <Slider label="Diskon Reseller" value={diskonRS} onChange={setDiskonRS} min={0} max={30} step={0.5} hint="Potongan dari harga normal" />
+          </div>
+          <div style={{ marginTop: "20px", paddingTop: "18px", borderTop: "1px solid var(--card-border)" }}>
+            <Input label="Minimal Profit per Pcs" value={minProfit} onChange={setMinProfit} hint={calc.kavg > 0 ? `Profit = Harga Flash Sale - Avg Kompetitor (${fmtRp(calc.kavg)})` : "Isi harga kompetitor dulu untuk aktivasi"} />
+          </div>
+          {calc.floorFromProfit > 0 && (
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(91,184,152,0.06)", border: "1px solid rgba(91,184,152,0.12)", borderRadius: "10px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--sage)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Floor Price (Avg Kompetitor + Min Profit)</div>
+              <div style={{ fontSize: "16px", fontWeight: 800 }}>{fmtRp(calc.floorFromProfit)}</div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>{fmtRp(calc.kavg)} + {fmtRp(calc.mp)} ≈ {fmtRp(calc.floorFromProfit)} (dibulatkan ke Rp 1.000)</div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Maks diskon EU: {fmtPct(calc.maxDiskonEU)} · Maks diskon RS: {fmtPct(calc.maxDiskonRS)}</div>
+            </div>
+          )}
+          {(calc.cappedEU || calc.cappedRS) && (
+            <div style={{ marginTop: "10px", padding: "10px 14px", background: "rgba(224,180,76,0.08)", border: "1px solid rgba(224,180,76,0.15)", borderRadius: "10px", display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "14px" }}>🔒</span>
+              <div style={{ fontSize: "11px", color: "var(--gold)", lineHeight: 1.6 }}>
+                <strong>Diskon di-cap otomatis</strong> supaya profit tidak di bawah {fmtRp(calc.mp)}/pcs.
+                {calc.cappedEU && ` EU: ${fmtPct(diskonEU)} → aktual ${fmtPct(calc.actualDiskonEU)}.`}
+                {calc.cappedRS && ` RS: ${fmtPct(diskonRS)} → aktual ${fmtPct(calc.actualDiskonRS)}.`}
+              </div>
+            </div>
+          )}
+          {(calc.eu > 0 || calc.rs > 0) && (
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(255,255,255,0.015)", border: "1px solid var(--card-border)", borderRadius: "10px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Perhitungan</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {calc.eu > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>EU: {fmtRp(calc.eu)} × {100 - diskonEU}% ≈ </span><strong style={{ color: "var(--gold)" }}>{fmtRp(calc.flashEU)}</strong>{calc.cappedEU && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
+                {calc.rs > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>RS: {fmtRp(calc.rs)} × {100 - diskonRS}% ≈ </span><strong style={{ color: "var(--sage)" }}>{fmtRp(calc.flashRS)}</strong>{calc.cappedRS && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "6px", fontStyle: "italic" }}>Hasil dibulatkan ke Rp 1.000 terdekat · Belum termasuk ongkos kirim</div>
+            </div>
+          )}
+        </Card>
+
+        <div style={{ height: "14px" }} />
+
+        <Card icon="⑤" color="var(--gold)" title="Harga Flash Sale">
+          <div style={{ background: "linear-gradient(135deg,rgba(224,180,76,0.06),rgba(212,164,58,0.03))", border: "1px solid rgba(224,180,76,0.12)", borderRadius: "14px", padding: "20px", marginBottom: "16px", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "10px", left: "-4px", background: "linear-gradient(135deg,var(--coral),var(--coral-soft))", color: "#fff", padding: "3px 14px 3px 18px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.06em", clipPath: "polygon(6px 0,100% 0,95% 50%,100% 100%,6px 100%,0 50%)" }}>FLASH SALE</div>
+            <div style={{ marginTop: "28px" }}>
+              <div style={{ fontSize: "14px", fontWeight: 700, marginBottom: "10px" }}>{productName || "Nama Produk"}{calc.gram > 0 ? ` · ${calc.gram}g` : ""}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "28px", fontWeight: 800, color: "var(--gold)" }}>{fmtRp(calc.finalEU)}</span>
+                {calc.eu > 0 && <span style={{ fontSize: "14px", color: "var(--muted)", textDecoration: "line-through" }}>{fmtRp(calc.eu)}</span>}
+                {calc.actualDiskonEU > 0 && (<span style={{ background: "rgba(216,114,90,0.12)", color: "var(--coral)", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: 700 }}>-{fmtPct(calc.actualDiskonEU)}</span>)}
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", fontStyle: "italic" }}>* Belum termasuk ongkos kirim</div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ padding: "14px", background: "rgba(224,180,76,0.05)", border: "1px solid rgba(224,180,76,0.1)", borderRadius: "12px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Flash End User</div>
+              <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>{fmtRp(calc.finalEU)}</div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Hemat {fmtRp(calc.selisihEU)} ({fmtPct(calc.actualDiskonEU)})</div>
+              {calc.profitEU !== 0 && <div style={{ fontSize: "11px", color: calc.profitEU > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit {fmtRp(calc.profitEU)}/pcs</div>}
+              {calc.profitPerGramEU > 0 && <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1px" }}>{fmtRp(calc.profitPerGramEU)}/g</div>}
+            </div>
+            <div style={{ padding: "14px", background: "rgba(91,184,152,0.05)", border: "1px solid rgba(91,184,152,0.1)", borderRadius: "12px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--sage)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Flash Reseller</div>
+              <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>{fmtRp(calc.finalRS)}</div>
+              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Hemat {fmtRp(calc.selisihRS)} ({fmtPct(calc.actualDiskonRS)})</div>
+              {calc.profitRS !== 0 && <div style={{ fontSize: "11px", color: calc.profitRS > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit {fmtRp(calc.profitRS)}/pcs</div>}
+              {calc.profitPerGramRS > 0 && <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1px" }}>{fmtRp(calc.profitPerGramRS)}/g</div>}
+            </div>
+          </div>
+
+          <details>
+            <summary style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", cursor: "pointer", padding: "8px 0", userSelect: "none" }}>✏️ Override harga manual (tanpa pembulatan)</summary>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "10px" }}>
+              <Input label="Override End User" value={overrideEU} onChange={setOverrideEU} accent hint="Kosongkan = pakai hitungan" />
+              <Input label="Override Reseller" value={overrideRS} onChange={setOverrideRS} accent hint="Kosongkan = pakai hitungan" />
+            </div>
+            {(overrideEU || overrideRS) && (<button onClick={() => { setOverrideEU(""); setOverrideRS(""); }} style={{ marginTop: "10px", padding: "8px 16px", fontSize: "12px", fontWeight: 700, background: "rgba(216,114,90,0.1)", color: "var(--coral)", border: "1px solid rgba(216,114,90,0.2)", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" }}>Reset ke Hitungan</button>)}
+          </details>
+        </Card>
+
+        <div style={{ height: "14px" }} />
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+          <Stat label="Profit EU/pcs" value={fmtRp(calc.profitEU)} sub={calc.profitPerGramEU > 0 ? `${fmtRp(calc.profitPerGramEU)}/g` : "vs avg kompetitor"} variant={calc.profitEU > 0 && calc.profitEU >= calc.mp ? "green" : calc.profitEU > 0 ? "amber" : calc.kavg > 0 ? "red" : "default"} />
+          <Stat label="Profit RS/pcs" value={fmtRp(calc.profitRS)} sub={calc.profitPerGramRS > 0 ? `${fmtRp(calc.profitPerGramRS)}/g` : "vs avg kompetitor"} variant={calc.profitRS > 0 && calc.profitRS >= calc.mp ? "green" : calc.profitRS > 0 ? "amber" : calc.kavg > 0 ? "red" : "default"} />
+          <Stat label="Posisi EU" value={calc.posisiEU} sub={calc.diffEUvsKomp !== 0 ? `${calc.diffEUvsKomp > 0 ? "+" : ""}${fmtRp(calc.diffEUvsKomp)}` : "-"} variant="default" />
+        </div>
+
+        <Card icon="📊" color="var(--lavender)" title="Perbandingan Harga">
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {calc.eu > 0 && <Bar label="Normal EU" value={calc.eu} max={maxBar} color="rgba(224,180,76,0.25)" />}
+            {calc.finalEU > 0 && <Bar label="Flash EU" value={calc.finalEU} max={maxBar} color="var(--gold)" />}
+            {calc.rs > 0 && <Bar label="Normal RS" value={calc.rs} max={maxBar} color="rgba(91,184,152,0.25)" />}
+            {calc.finalRS > 0 && <Bar label="Flash RS" value={calc.finalRS} max={maxBar} color="var(--sage)" />}
+            {calc.kmin > 0 && <Bar label="Komp. Min" value={calc.kmin} max={maxBar} color="var(--lavender-soft)" />}
+            {calc.kmax > 0 && <Bar label="Komp. Max" value={calc.kmax} max={maxBar} color="var(--lavender)" />}
+            {calc.kavg > 0 && <Bar label="Komp. Avg" value={calc.kavg} max={maxBar} color="rgba(139,155,247,0.5)" />}
+            {calc.floorFromProfit > 0 && <Bar label="Floor" value={calc.floorFromProfit} max={maxBar} color="rgba(212,164,58,0.5)" tag="min profit" />}
+          </div>
+        </Card>
+
+        {(calc.finalEU > 0 && calc.finalRS > 0 && calc.finalEU < calc.finalRS) && (
+          <div style={{ marginTop: "14px", padding: "14px 18px", background: "rgba(216,114,90,0.08)", border: "1px solid rgba(216,114,90,0.15)", borderRadius: "12px", display: "flex", gap: "10px" }}>
+            <span>🚨</span>
+            <div style={{ fontSize: "12px", color: "var(--muted)" }}><strong style={{ color: "var(--coral)" }}>Flash end user lebih murah dari reseller!</strong> Cek diskon atau override harga.</div>
+          </div>
+        )}
+        {(calc.profitEU < 0 || calc.profitRS < 0) && (
+          <div style={{ marginTop: "10px", padding: "14px 18px", background: "rgba(216,114,90,0.08)", border: "1px solid rgba(216,114,90,0.15)", borderRadius: "12px", display: "flex", gap: "10px" }}>
+            <span>⚠️</span>
+            <div style={{ fontSize: "12px", color: "var(--muted)" }}><strong style={{ color: "var(--coral)" }}>Harga flash sale di bawah rata-rata kompetitor!</strong>{calc.profitEU < 0 && ` EU: ${fmtRp(calc.profitEU)}.`}{calc.profitRS < 0 && ` RS: ${fmtRp(calc.profitRS)}.`}</div>
+          </div>
+        )}
+
+        <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(139,155,247,0.05)", border: "1px solid rgba(139,155,247,0.1)", borderRadius: "12px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <span style={{ fontSize: "14px" }}>📦</span>
+          <div style={{ fontSize: "11px", color: "var(--lavender)", lineHeight: 1.5 }}><strong>Semua harga belum termasuk ongkos kirim.</strong> Ongkir ditanggung pembeli atau dihitung terpisah saat checkout.</div>
+        </div>
+
+        <div style={{ textAlign: "center", padding: "28px 0 8px", fontSize: "10px", color: "var(--muted)" }}>⚡ Flash Sale Calculator</div>
+      </div>
+    </div>
+  );
+}
