@@ -72,26 +72,6 @@ const Stat = ({ label, value, sub, variant }) => {
   );
 };
 
-const Bar = ({ label, value, max, color, tag }) => {
-  const w = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <div style={{ width: "85px", fontSize: "11px", color: "var(--muted)", fontWeight: 600, textAlign: "right", flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1, background: "var(--bar-bg)", borderRadius: "6px", height: "28px", overflow: "hidden" }}>
-        <div style={{
-          width: `${w}%`, height: "100%", background: color, borderRadius: "6px",
-          transition: "width 0.4s cubic-bezier(0.22,1,0.36,1)",
-          display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "8px",
-          minWidth: value > 0 ? "80px" : 0,
-        }}>
-          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", whiteSpace: "nowrap" }}>
-            {fmtRp(value)}{tag ? ` ${tag}` : ""}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const GramBtn = ({ label, active, onClick }) => (
   <button onClick={onClick} style={{
@@ -162,7 +142,6 @@ export default function FlashSaleCalculator() {
     return { eu, rs, kmin, kmax, kavg, gram, mp, flashEU, flashRS, finalEU, finalRS, floorFromProfit, cappedEU, cappedRS, actualDiskonEU, actualDiskonRS, selisihEU, selisihRS, profitEU, profitEUMax, profitRSMax, profitEUMin, profitRSMin, profitRS, profitPerGramEU, profitPerGramRS, posisiEU, diffEUvsKomp, maxDiskonEU, maxDiskonRS };
   }, [hargaEU, hargaRS, kompMin, kompMax, diskonType, diskonEU, diskonRS, diskonFixEU, diskonFixRS, minProfit, gramasi, overrideEU, overrideRS]);
 
-  const maxBar = Math.max(calc.eu, calc.rs, calc.kmax, calc.finalEU, calc.finalRS, 1);
 
   return (
     <div style={{
@@ -197,8 +176,19 @@ export default function FlashSaleCalculator() {
             Hitung Harga{" "}
             <span style={{ background: "linear-gradient(135deg,#E8C35A,#D4A43A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Flash Sale</span>
           </h1>
-          <p style={{ fontSize: "13px", color: "var(--muted)", marginTop: "8px" }}>Input harga normal & kompetitor, atur diskon, dapat harga flash sale optimal</p>
+          <p style={{ fontSize: "13px", color: "var(--muted)", marginTop: "8px" }}>Input harga normal & harga pasaran, atur diskon, dapat harga flash sale optimal</p>
         </div>
+
+        <details style={{ marginBottom: "14px" }}>
+          <summary style={{ fontSize: "12px", fontWeight: 700, color: "var(--muted)", cursor: "pointer", padding: "8px 0", userSelect: "none" }}>📖 Keterangan Istilah</summary>
+          <div style={{ marginTop: "8px", padding: "14px 16px", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", lineHeight: 1.6 }}>
+            <div><strong style={{ color: "var(--gold)" }}>EU (End User)</strong> <span style={{ color: "var(--muted)" }}>— Pembeli langsung / konsumen akhir</span></div>
+            <div><strong style={{ color: "var(--sage)" }}>RS (Reseller)</strong> <span style={{ color: "var(--muted)" }}>— Penjual kembali / agen yang beli untuk dijual lagi</span></div>
+            <div><strong style={{ color: "var(--text)" }}>Profit Min</strong> <span style={{ color: "var(--muted)" }}>— Keuntungan minimal per pcs (dihitung dari harga pasaran tertinggi)</span></div>
+            <div><strong style={{ color: "var(--text)" }}>Profit Max</strong> <span style={{ color: "var(--muted)" }}>— Keuntungan maksimal per pcs (dihitung dari harga pasaran terendah)</span></div>
+            <div><strong style={{ color: "var(--text)" }}>Profit Avg</strong> <span style={{ color: "var(--muted)" }}>— Keuntungan rata-rata per pcs (dihitung dari rata-rata harga pasaran)</span></div>
+          </div>
+        </details>
 
         <Card icon="①" color="var(--gold)" title="Produk">
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -237,14 +227,14 @@ export default function FlashSaleCalculator() {
 
         <div style={{ height: "14px" }} />
 
-        <Card icon="③" color="var(--lavender-soft)" title="Harga Kompetitor" sub="Harga beli dari penjual lain di pasaran">
+        <Card icon="③" color="var(--lavender-soft)" title="Harga Pasaran" sub="Harga yang beredar di pasaran dari penjual lain">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
             <Input label="Harga Beli Minimal" value={kompMin} onChange={setKompMin} hint="Termurah di pasaran" />
             <Input label="Harga Beli Maksimal" value={kompMax} onChange={setKompMax} hint="Termahal di pasaran" />
           </div>
           {calc.kavg > 0 && (
             <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(139,155,247,0.06)", border: "1px solid rgba(139,155,247,0.12)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--lavender)" }}>Rata-rata Kompetitor</span>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--lavender)" }}>Rata-rata Harga Pasaran</span>
               <div style={{ textAlign: "right" }}>
                 <span style={{ fontSize: "16px", fontWeight: 800, color: "var(--lavender)" }}>{fmtRp(calc.kavg)}</span>
                 {calc.gram > 0 && <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "8px" }}>({fmtRp(calc.kavg / calc.gram)}/g)</span>}
@@ -279,11 +269,11 @@ export default function FlashSaleCalculator() {
             </div>
           )}
           <div style={{ marginTop: "20px", paddingTop: "18px", borderTop: "1px solid var(--card-border)" }}>
-            <Input label="Minimal Profit per Pcs" value={minProfit} onChange={setMinProfit} hint={calc.kavg > 0 ? `Profit = Harga Flash Sale - Avg Kompetitor (${fmtRp(calc.kavg)})` : "Isi harga kompetitor dulu untuk aktivasi"} />
+            <Input label="Minimal Profit per Pcs" value={minProfit} onChange={setMinProfit} hint={calc.kavg > 0 ? `Profit = Harga Flash Sale - Avg Pasaran (${fmtRp(calc.kavg)})` : "Isi harga pasaran dulu untuk aktivasi"} />
           </div>
           {calc.floorFromProfit > 0 && (
             <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(91,184,152,0.06)", border: "1px solid rgba(91,184,152,0.12)", borderRadius: "10px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--sage)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Floor Price (Avg Kompetitor + Min Profit)</div>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--sage)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Floor Price (Avg Pasaran + Min Profit)</div>
               <div style={{ fontSize: "16px", fontWeight: 800 }}>{fmtRp(calc.floorFromProfit)}</div>
               <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>{fmtRp(calc.kavg)} + {fmtRp(calc.mp)} ≈ {fmtRp(calc.floorFromProfit)} (dibulatkan ke Rp 1.000)</div>
               <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Maks diskon EU: {fmtPct(calc.maxDiskonEU)} · Maks diskon RS: {fmtPct(calc.maxDiskonRS)}</div>
@@ -356,21 +346,6 @@ export default function FlashSaleCalculator() {
           </details>
         </Card>
 
-        <div style={{ height: "14px" }} />
-
-        <Card icon="📊" color="var(--lavender)" title="Perbandingan Harga">
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {calc.eu > 0 && <Bar label="Normal EU" value={calc.eu} max={maxBar} color="rgba(224,180,76,0.25)" />}
-            {calc.finalEU > 0 && <Bar label="Flash EU" value={calc.finalEU} max={maxBar} color="var(--gold)" />}
-            {calc.rs > 0 && <Bar label="Normal RS" value={calc.rs} max={maxBar} color="rgba(91,184,152,0.25)" />}
-            {calc.finalRS > 0 && <Bar label="Flash RS" value={calc.finalRS} max={maxBar} color="var(--sage)" />}
-            {calc.kmin > 0 && <Bar label="Komp. Min" value={calc.kmin} max={maxBar} color="var(--lavender-soft)" />}
-            {calc.kmax > 0 && <Bar label="Komp. Max" value={calc.kmax} max={maxBar} color="var(--lavender)" />}
-            {calc.kavg > 0 && <Bar label="Komp. Avg" value={calc.kavg} max={maxBar} color="rgba(139,155,247,0.5)" />}
-            {calc.floorFromProfit > 0 && <Bar label="Floor" value={calc.floorFromProfit} max={maxBar} color="rgba(212,164,58,0.5)" tag="min profit" />}
-          </div>
-        </Card>
-
         {(calc.finalEU > 0 && calc.finalRS > 0 && calc.finalEU < calc.finalRS) && (
           <div style={{ marginTop: "14px", padding: "14px 18px", background: "rgba(216,114,90,0.08)", border: "1px solid rgba(216,114,90,0.15)", borderRadius: "12px", display: "flex", gap: "10px" }}>
             <span>🚨</span>
@@ -380,7 +355,7 @@ export default function FlashSaleCalculator() {
         {(calc.profitEU < 0 || calc.profitRS < 0) && (
           <div style={{ marginTop: "10px", padding: "14px 18px", background: "rgba(216,114,90,0.08)", border: "1px solid rgba(216,114,90,0.15)", borderRadius: "12px", display: "flex", gap: "10px" }}>
             <span>⚠️</span>
-            <div style={{ fontSize: "12px", color: "var(--muted)" }}><strong style={{ color: "var(--coral)" }}>Harga flash sale di bawah rata-rata kompetitor!</strong>{calc.profitEU < 0 && ` EU: ${fmtRp(calc.profitEU)}.`}{calc.profitRS < 0 && ` RS: ${fmtRp(calc.profitRS)}.`}</div>
+            <div style={{ fontSize: "12px", color: "var(--muted)" }}><strong style={{ color: "var(--coral)" }}>Harga flash sale di bawah rata-rata harga pasaran!</strong>{calc.profitEU < 0 && ` EU: ${fmtRp(calc.profitEU)}.`}{calc.profitRS < 0 && ` RS: ${fmtRp(calc.profitRS)}.`}</div>
           </div>
         )}
 
