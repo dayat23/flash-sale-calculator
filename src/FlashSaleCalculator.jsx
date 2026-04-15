@@ -110,8 +110,11 @@ export default function FlashSaleCalculator() {
   const [hargaRS, setHargaRS] = useState("");
   const [kompMin, setKompMin] = useState("");
   const [kompMax, setKompMax] = useState("");
+  const [diskonType, setDiskonType] = useState("persen"); // "persen" | "fixPrice"
   const [diskonEU, setDiskonEU] = useState(10);
   const [diskonRS, setDiskonRS] = useState(5);
+  const [diskonFixEU, setDiskonFixEU] = useState("");
+  const [diskonFixRS, setDiskonFixRS] = useState("");
   const [minProfit, setMinProfit] = useState("");
   const [overrideEU, setOverrideEU] = useState("");
   const [overrideRS, setOverrideRS] = useState("");
@@ -125,8 +128,10 @@ export default function FlashSaleCalculator() {
     const mp = Number(minProfit) || 0;
     const gram = Number(gramasi) || 0;
 
-    let flashEU = eu > 0 ? roundNice(eu * (1 - diskonEU / 100)) : 0;
-    let flashRS = rs > 0 ? roundNice(rs * (1 - diskonRS / 100)) : 0;
+    const fixEU = Number(diskonFixEU) || 0;
+    const fixRS = Number(diskonFixRS) || 0;
+    let flashEU = eu > 0 ? roundNice(diskonType === "fixPrice" ? eu - fixEU : eu * (1 - diskonEU / 100)) : 0;
+    let flashRS = rs > 0 ? roundNice(diskonType === "fixPrice" ? rs - fixRS : rs * (1 - diskonRS / 100)) : 0;
     const floorFromProfit = kavg > 0 && mp > 0 ? roundNice(kavg + mp) : 0;
 
     let cappedEU = false, cappedRS = false;
@@ -155,7 +160,7 @@ export default function FlashSaleCalculator() {
     const maxDiskonRS = rs > 0 && floorFromProfit > 0 ? Math.max(((rs - floorFromProfit) / rs) * 100, 0) : 100;
 
     return { eu, rs, kmin, kmax, kavg, gram, mp, flashEU, flashRS, finalEU, finalRS, floorFromProfit, cappedEU, cappedRS, actualDiskonEU, actualDiskonRS, selisihEU, selisihRS, profitEU, profitEUMax, profitRSMax, profitEUMin, profitRSMin, profitRS, profitPerGramEU, profitPerGramRS, posisiEU, diffEUvsKomp, maxDiskonEU, maxDiskonRS };
-  }, [hargaEU, hargaRS, kompMin, kompMax, diskonEU, diskonRS, minProfit, gramasi, overrideEU, overrideRS]);
+  }, [hargaEU, hargaRS, kompMin, kompMax, diskonType, diskonEU, diskonRS, diskonFixEU, diskonFixRS, minProfit, gramasi, overrideEU, overrideRS]);
 
   const maxBar = Math.max(calc.eu, calc.rs, calc.kmax, calc.finalEU, calc.finalRS, 1);
 
@@ -251,10 +256,28 @@ export default function FlashSaleCalculator() {
         <div style={{ height: "14px" }} />
 
         <Card icon="④" color="var(--sage)" title="Strategi Flash Sale">
-          <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-            <Slider label="Diskon End User" value={diskonEU} onChange={setDiskonEU} min={0} max={50} step={0.5} hint="Potongan dari harga normal" />
-            <Slider label="Diskon Reseller" value={diskonRS} onChange={setDiskonRS} min={0} max={30} step={0.5} hint="Potongan dari harga normal" />
+          <div style={{ display: "flex", gap: "6px", marginBottom: "18px" }}>
+            {[{ key: "persen", label: "Diskon Persen (%)" }, { key: "fixPrice", label: "Diskon Fix Price (Rp)" }].map(({ key, label }) => (
+              <button key={key} onClick={() => setDiskonType(key)} style={{
+                flex: 1, padding: "9px 14px", fontSize: "12px", fontWeight: 700, borderRadius: "10px", cursor: "pointer",
+                fontFamily: "inherit", transition: "all 0.15s",
+                background: diskonType === key ? "rgba(91,184,152,0.12)" : "var(--input-bg)",
+                color: diskonType === key ? "var(--sage)" : "var(--muted)",
+                border: `1px solid ${diskonType === key ? "rgba(91,184,152,0.3)" : "var(--input-border)"}`,
+              }}>{label}</button>
+            ))}
           </div>
+          {diskonType === "persen" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+              <Slider label="Diskon End User" value={diskonEU} onChange={setDiskonEU} min={0} max={50} step={0.5} hint="Potongan dari harga normal" />
+              <Slider label="Diskon Reseller" value={diskonRS} onChange={setDiskonRS} min={0} max={30} step={0.5} hint="Potongan dari harga normal" />
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+              <Input label="Potongan End User" value={diskonFixEU} onChange={setDiskonFixEU} hint={calc.eu > 0 ? `Harga normal: ${fmtRp(calc.eu)}` : "Isi harga EU dulu"} />
+              <Input label="Potongan Reseller" value={diskonFixRS} onChange={setDiskonFixRS} hint={calc.rs > 0 ? `Harga normal: ${fmtRp(calc.rs)}` : "Isi harga RS dulu"} />
+            </div>
+          )}
           <div style={{ marginTop: "20px", paddingTop: "18px", borderTop: "1px solid var(--card-border)" }}>
             <Input label="Minimal Profit per Pcs" value={minProfit} onChange={setMinProfit} hint={calc.kavg > 0 ? `Profit = Harga Flash Sale - Avg Kompetitor (${fmtRp(calc.kavg)})` : "Isi harga kompetitor dulu untuk aktivasi"} />
           </div>
@@ -280,8 +303,8 @@ export default function FlashSaleCalculator() {
             <div style={{ marginTop: "14px", padding: "12px 16px", background: "rgba(255,255,255,0.015)", border: "1px solid var(--card-border)", borderRadius: "10px" }}>
               <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--label)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Perhitungan</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {calc.eu > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>EU: {fmtRp(calc.eu)} × {100 - diskonEU}% ≈ </span><strong style={{ color: "var(--gold)" }}>{fmtRp(calc.flashEU)}</strong>{calc.cappedEU && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
-                {calc.rs > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>RS: {fmtRp(calc.rs)} × {100 - diskonRS}% ≈ </span><strong style={{ color: "var(--sage)" }}>{fmtRp(calc.flashRS)}</strong>{calc.cappedRS && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
+                {calc.eu > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>EU: {diskonType === "fixPrice" ? `${fmtRp(calc.eu)} - ${fmtRp(Number(diskonFixEU) || 0)}` : `${fmtRp(calc.eu)} × ${100 - diskonEU}%`} ≈ </span><strong style={{ color: "var(--gold)" }}>{fmtRp(calc.flashEU)}</strong>{calc.cappedEU && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
+                {calc.rs > 0 && (<div style={{ fontSize: "13px" }}><span style={{ color: "var(--muted)" }}>RS: {diskonType === "fixPrice" ? `${fmtRp(calc.rs)} - ${fmtRp(Number(diskonFixRS) || 0)}` : `${fmtRp(calc.rs)} × ${100 - diskonRS}%`} ≈ </span><strong style={{ color: "var(--sage)" }}>{fmtRp(calc.flashRS)}</strong>{calc.cappedRS && <span style={{ color: "var(--gold-dark)", fontSize: "11px" }}> (di-cap ke floor)</span>}</div>)}
               </div>
               <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "6px", fontStyle: "italic" }}>Hasil dibulatkan ke Rp 1.000 terdekat · Belum termasuk ongkos kirim</div>
             </div>
