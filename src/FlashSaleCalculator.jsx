@@ -143,6 +143,10 @@ export default function FlashSaleCalculator() {
     const profitRS = finalRS > 0 && kavg > 0 ? finalRS - kavg : 0;
     const profitPerGramEU = profitEU > 0 && gram > 0 ? profitEU / gram : 0;
     const profitPerGramRS = profitRS > 0 && gram > 0 ? profitRS / gram : 0;
+    const profitEUMax = eu > 0 && finalEU > 0 ? finalEU - kmax : 0;
+    const profitRSMax = rs > 0 && finalRS > 0 ? finalRS - kmax : 0;
+    const profitEUMin = eu > 0 && finalEU > 0 ? finalEU - kmin : 0;
+    const profitRSMin = rs > 0 && finalRS > 0 ? finalRS - kmin : 0;
 
     let posisiEU = "-";
     if (finalEU > 0 && kavg > 0) { const d = ((finalEU - kavg) / kavg) * 100; posisiEU = d < -2 ? "Lebih Murah" : d > 2 ? "Lebih Mahal" : "Setara"; }
@@ -150,7 +154,7 @@ export default function FlashSaleCalculator() {
     const maxDiskonEU = eu > 0 && floorFromProfit > 0 ? Math.max(((eu - floorFromProfit) / eu) * 100, 0) : 100;
     const maxDiskonRS = rs > 0 && floorFromProfit > 0 ? Math.max(((rs - floorFromProfit) / rs) * 100, 0) : 100;
 
-    return { eu, rs, kmin, kmax, kavg, gram, mp, flashEU, flashRS, finalEU, finalRS, floorFromProfit, cappedEU, cappedRS, actualDiskonEU, actualDiskonRS, selisihEU, selisihRS, profitEU, profitRS, profitPerGramEU, profitPerGramRS, posisiEU, diffEUvsKomp, maxDiskonEU, maxDiskonRS };
+    return { eu, rs, kmin, kmax, kavg, gram, mp, flashEU, flashRS, finalEU, finalRS, floorFromProfit, cappedEU, cappedRS, actualDiskonEU, actualDiskonRS, selisihEU, selisihRS, profitEU, profitEUMax, profitRSMax, profitEUMin, profitRSMin, profitRS, profitPerGramEU, profitPerGramRS, posisiEU, diffEUvsKomp, maxDiskonEU, maxDiskonRS };
   }, [hargaEU, hargaRS, kompMin, kompMax, diskonEU, diskonRS, minProfit, gramasi, overrideEU, overrideRS]);
 
   const maxBar = Math.max(calc.eu, calc.rs, calc.kmax, calc.finalEU, calc.finalRS, 1);
@@ -305,15 +309,17 @@ export default function FlashSaleCalculator() {
               <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Flash End User</div>
               <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>{fmtRp(calc.finalEU)}</div>
               <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Hemat {fmtRp(calc.selisihEU)} ({fmtPct(calc.actualDiskonEU)})</div>
-              {calc.profitEU !== 0 && <div style={{ fontSize: "11px", color: calc.profitEU > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit {fmtRp(calc.profitEU)}/pcs</div>}
-              {calc.profitPerGramEU > 0 && <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1px" }}>{fmtRp(calc.profitPerGramEU)}/g</div>}
+              {calc.profitEUMax !== 0 && <div style={{ fontSize: "11px", color: calc.profitEUMax > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Min {fmtRp(calc.profitEUMax)}/pcs</div>}
+              {calc.profitEUMin !== 0 && <div style={{ fontSize: "11px", color: calc.profitEUMin > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Max {fmtRp(calc.profitEUMin)}/pcs</div>}
+              {calc.profitEU !== 0 && <div style={{ fontSize: "11px", color: calc.profitEU > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Avg {fmtRp(calc.profitEU)}/pcs</div>}
             </div>
             <div style={{ padding: "14px", background: "rgba(91,184,152,0.05)", border: "1px solid rgba(91,184,152,0.1)", borderRadius: "12px" }}>
               <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--sage)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Flash Reseller</div>
               <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>{fmtRp(calc.finalRS)}</div>
-              <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Hemat {fmtRp(calc.selisihRS)} ({fmtPct(calc.actualDiskonRS)})</div>
-              {calc.profitRS !== 0 && <div style={{ fontSize: "11px", color: calc.profitRS > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit {fmtRp(calc.profitRS)}/pcs</div>}
-              {calc.profitPerGramRS > 0 && <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "1px" }}>{fmtRp(calc.profitPerGramRS)}/g</div>}
+                <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>Hemat {fmtRp(calc.selisihRS)} ({fmtPct(calc.actualDiskonRS)})</div>
+              {calc.profitRSMax !== 0 && <div style={{ fontSize: "11px", color: calc.profitRSMax > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Min {fmtRp(calc.profitRSMax)}/pcs</div>}
+              {calc.profitRSMin !== 0 && <div style={{ fontSize: "11px", color: calc.profitRSMin > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Max {fmtRp(calc.profitRSMin)}/pcs</div>}
+              {calc.profitRS !== 0 && <div style={{ fontSize: "11px", color: calc.profitRS > 0 ? "var(--sage)" : "var(--coral)", marginTop: "2px" }}>Profit Avg {fmtRp(calc.profitRS)}/pcs</div>}
             </div>
           </div>
 
@@ -328,12 +334,6 @@ export default function FlashSaleCalculator() {
         </Card>
 
         <div style={{ height: "14px" }} />
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
-          <Stat label="Profit EU/pcs" value={fmtRp(calc.profitEU)} sub={calc.profitPerGramEU > 0 ? `${fmtRp(calc.profitPerGramEU)}/g` : "vs avg kompetitor"} variant={calc.profitEU > 0 && calc.profitEU >= calc.mp ? "green" : calc.profitEU > 0 ? "amber" : calc.kavg > 0 ? "red" : "default"} />
-          <Stat label="Profit RS/pcs" value={fmtRp(calc.profitRS)} sub={calc.profitPerGramRS > 0 ? `${fmtRp(calc.profitPerGramRS)}/g` : "vs avg kompetitor"} variant={calc.profitRS > 0 && calc.profitRS >= calc.mp ? "green" : calc.profitRS > 0 ? "amber" : calc.kavg > 0 ? "red" : "default"} />
-          <Stat label="Posisi EU" value={calc.posisiEU} sub={calc.diffEUvsKomp !== 0 ? `${calc.diffEUvsKomp > 0 ? "+" : ""}${fmtRp(calc.diffEUvsKomp)}` : "-"} variant="default" />
-        </div>
 
         <Card icon="📊" color="var(--lavender)" title="Perbandingan Harga">
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
